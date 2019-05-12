@@ -2,6 +2,7 @@ from cyflash import bootload
 
 import can
 import time
+import sys
 
 class Flasher:
 
@@ -35,23 +36,39 @@ class Flasher:
 		
 	def upload(self, bms_id):
 		self.take_bus()
-		time.sleep(2)
+		time.sleep(1)
 		self.send_silence()
-		time.sleep(2)
 		self.send_silence()
-		time.sleep(2)
+		self.send_silence()
 		self.send_reset(bms_id)
-		time.sleep(2)
 		self.send_reset(bms_id)
-		time.sleep(2)
+		self.send_reset(bms_id)
+		time.sleep(1)
 		self.release_bus()
 		bootload.main()
 		self.release_bus()
 	
 
 def main():
+
+	print (sys.argv[0])
+	start_bms = int(sys.argv[1])
+	end_bms = int(sys.argv[2])
+	
+	if (start_bms > end_bms):
+		print("Bad input bms ids start id cannot be larger then stop id")
+		sys.exit()
+		
+	#print("Uploading bms id from"  + start_bms + "to " + end_bms + "...")
+	
+	args = 'cyflash_run.py Eviation-BMS.cyacd --canbus=pcan --canbus_channel=PCAN_USBBUS1 --canbus_id=0x0ab --canbus_baudrate=1000000'
+	args = args.split()
+	sys.argv = args
+	
+	print(type(start_bms))
+	
 	f = Flasher()
-	for i in range(1,23):
+	for i in range(start_bms,end_bms):
 		print("uploading " + str(i))
 		f.upload(i%2 + 1)
 
