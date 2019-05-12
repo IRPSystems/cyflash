@@ -68,9 +68,10 @@ def main():
 	print(type(start_bms))
 	
 	f = Flasher()
-	for i in range(start_bms,end_bms):
+	for i in range(start_bms,end_bms + 1):
 		print("uploading " + str(i))
-		f.upload(i%2 + 1)
+		if( i != 3):
+			f.upload(i)
 
 
 # Cal main entry point
