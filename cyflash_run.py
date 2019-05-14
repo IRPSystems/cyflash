@@ -62,7 +62,11 @@ def main():
 	if (start_bms > end_bms):
 		print("Bad input bms ids start id cannot be larger then stop id")
 		sys.exit()
-	
+		
+	print("╔╗╔┌─┐─┐ ┬┌─┐┬ ┬┌─┐  ╦╦═╗╔═╗  ╔═╗┬  ┬┌─┐┬┌─┐┌┬┐┬┌─┐┌┐┌  ╔═╗┬  ┌─┐┌─┐┬ ┬┌─┐┬─┐")  
+	print("║║║├┤ ┌┴┬┘└─┐│ │└─┐  ║╠╦╝╠═╝  ║╣ └┐┌┘├┤ │├─┤ │ ││ ││││  ╠╣ │  ├─┤└─┐├─┤├┤ ├┬┘")  
+	print("╝╚╝└─┘┴ └─└─┘└─┘└─┘  ╩╩╚═╩    ╚═╝ └┘ └─┘┴┴ ┴ ┴ ┴└─┘┘└┘  ╚  ┴─┘┴ ┴└─┘┴ ┴└─┘┴└─")
+	print("version 1.0\r\n")
 	print("******************************************************")
 	print("uploading ... " + filename)
 	print("Uploading bms id from ",start_bms," to ",end_bms," ...")
