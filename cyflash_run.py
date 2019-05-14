@@ -60,25 +60,19 @@ def main():
 	if (start_bms > end_bms):
 		print("Bad input bms ids start id cannot be larger then stop id")
 		sys.exit()
-		
-	#print("Uploading bms id from"  + start_bms + "to " + end_bms + "...")
+	
+	print("******************************************************")
+	print("Uploading bms id from ",start_bms," to ",end_bms," ...")
+	print("******************************************************")
 	
 	args = 'cyflash_run.py Eviation-BMS.cyacd --canbus=pcan --canbus_channel=PCAN_USBBUS1 --canbus_id=0x0ab --canbus_baudrate=1000000'
 	args = args.split()
 	sys.argv = args
 	
-	print(type(start_bms))
-	for i in range(1,100):
-		print("******************")
-		print("******************")
-		print("RUN # " + str(i))
-		print("******************")
-		print("******************")
-		f = Flasher()
-		for i in range(start_bms,end_bms + 1):
-			print("uploading " + str(i))
-			if( i != 3):
-				f.upload(i)
+	f = Flasher()
+	for i in range(start_bms,end_bms + 1):
+		print("uploading " + str(i))
+		f.upload(i)
 
 
 # Cal main entry point
