@@ -54,18 +54,21 @@ class Flasher:
 def main():
 
 	print (sys.argv[0])
-	start_bms = int(sys.argv[1])
-	end_bms = int(sys.argv[2])
+	filename = sys.argv[1]
+	start_bms = int(sys.argv[2])
+	end_bms = int(sys.argv[3])
 	
+
 	if (start_bms > end_bms):
 		print("Bad input bms ids start id cannot be larger then stop id")
 		sys.exit()
 	
 	print("******************************************************")
+	print("uploading ... " + filename)
 	print("Uploading bms id from ",start_bms," to ",end_bms," ...")
 	print("******************************************************")
 	
-	args = 'cyflash_run.py Eviation-BMS.cyacd --canbus=pcan --canbus_channel=PCAN_USBBUS1 --canbus_id=0x0ab --canbus_baudrate=1000000'
+	args = 'cyflash_run.py '+ filename + ' --canbus=pcan --canbus_channel=PCAN_USBBUS1 --canbus_id=0x0ab --canbus_baudrate=1000000'
 	args = args.split()
 	sys.argv = args
 	
