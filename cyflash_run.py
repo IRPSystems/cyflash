@@ -39,9 +39,11 @@ class Flasher:
 		time.sleep(1)
 		self.send_silence()
 		self.send_silence()
+		time.sleep(1)
 		self.send_silence()
 		self.send_reset(bms_id)
 		self.send_reset(bms_id)
+		time.sleep(1)
 		self.send_reset(bms_id)
 		time.sleep(1)
 		self.release_bus()
@@ -66,12 +68,17 @@ def main():
 	sys.argv = args
 	
 	print(type(start_bms))
-	
-	f = Flasher()
-	for i in range(start_bms,end_bms + 1):
-		print("uploading " + str(i))
-		if( i != 3):
-			f.upload(i)
+	for i in range(1,100):
+		print("******************")
+		print("******************")
+		print("RUN # " + str(i))
+		print("******************")
+		print("******************")
+		f = Flasher()
+		for i in range(start_bms,end_bms + 1):
+			print("uploading " + str(i))
+			if( i != 3):
+				f.upload(i)
 
 
 # Cal main entry point
