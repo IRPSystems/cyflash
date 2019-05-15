@@ -6,9 +6,10 @@ import sys
 
 class Flasher:
 
-	def __init__(self):
+	def __init__(self,baud):
 		print("Calling constructor")
 		self.bus = "default"
+		self.baud = int(baud)
 		
 	def send_reset(self,bms_id):
 		msg = can.Message(arbitration_id=0x180000DD,data=[bms_id, 0, 0, 0, 0, 0, 0, 0],extended_id=True)
@@ -29,7 +30,7 @@ class Flasher:
 			print("Send Silence.. error")
 	
 	def take_bus(self):
-		self.bus = can.interface.Bus(bustype='pcan', channel='PCAN_USBBUS1', bitrate=1000000)
+		self.bus = can.interface.Bus(bustype='pcan', channel='PCAN_USBBUS1', bitrate=self.baud)
 		
 	def release_bus(self):
 		self.bus.shutdown()
@@ -53,10 +54,11 @@ class Flasher:
 
 def main():
 
-	print (sys.argv[0])
+
 	filename = sys.argv[1]
 	start_bms = int(sys.argv[2])
 	end_bms = int(sys.argv[3])
+	baud = sys.argv[4]
 	
 
 	if (start_bms > end_bms):
@@ -68,15 +70,15 @@ def main():
 	print("╝╚╝└─┘┴ └─└─┘└─┘└─┘  ╩╩╚═╩    ╚═╝ └┘ └─┘┴┴ ┴ ┴ ┴└─┘┘└┘  ╚  ┴─┘┴ ┴└─┘┴ ┴└─┘┴└─")
 	print("version 1.0\r\n")
 	print("******************************************************")
-	print("uploading ... " + filename)
+	print("uploading ... " + filename + " @ " + baud + " bits/sec")
 	print("Uploading bms id from ",start_bms," to ",end_bms," ...")
 	print("******************************************************")
 	
-	args = 'cyflash_run.py '+ filename + ' --canbus=pcan --canbus_channel=PCAN_USBBUS1 --canbus_id=0x0ab --canbus_baudrate=1000000'
+	args = 'cyflash_run.py '+ filename + ' --canbus=pcan --canbus_channel=PCAN_USBBUS1 --canbus_id=0x0ab --canbus_baudrate=' + baud
 	args = args.split()
 	sys.argv = args
 	
-	f = Flasher()
+	f = Flasher(baud)
 	for i in range(start_bms,end_bms + 1):
 		print("uploading " + str(i))
 		f.upload(i)
