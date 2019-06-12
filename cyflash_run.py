@@ -11,23 +11,23 @@ class Flasher:
 		self.bus = "default"
 		self.baud = int(baud)
 		
-	def send_reset(self,bms_id):
-		msg = can.Message(arbitration_id=0x180000DD,data=[bms_id, 0, 0, 0, 0, 0, 0, 0],extended_id=True)
+	def send_reset(self):
+		msg = can.Message(arbitration_id=0x180000DD,data=[0, 0, 0, 0, 0, 0, 0, 0],extended_id=True)
 		try:
 			self.bus.send(msg)
-			print("Send Reset.. to " + str(bms_id))
+			print("Send Reset.. !")
 			#print("Message sent on {}".format(self.bus.channel_info))
 		except can.CanError:
 			print("Send Silence.. error")
 
-	def send_silence(self):
-		msg = can.Message(arbitration_id=0x180000DF,data=[0, 0, 0, 0, 0, 0, 0, 0],extended_id=True)
+	def send_wake(self):
+		msg = can.Message(arbitration_id=0x180000EE,data=[0, 0, 0, 0, 0, 0, 0, 0],extended_id=True)
 		try:
 			self.bus.send(msg)
-			print("Send Silence..")
+			print("Send wake..")
 			#print("Message sent on {}".format(self.bus.channel_info))
 		except can.CanError:
-			print("Send Silence.. error")
+			print("Send wake.. error")
 	
 	def take_bus(self):
 		self.bus = can.interface.Bus(bustype='pcan', channel='PCAN_USBBUS1', bitrate=self.baud)
@@ -35,18 +35,19 @@ class Flasher:
 	def release_bus(self):
 		self.bus.shutdown()
 		
-	def upload(self, bms_id):
+	def upload(self):
 		self.take_bus()
+		
+		for i in range(15):
+			self.send_wake()
+			time.sleep(1)
+
+
+		self.send_reset()
 		time.sleep(1)
-		self.send_silence()
-		self.send_silence()
+		self.send_reset()
 		time.sleep(1)
-		self.send_silence()
-		self.send_reset(bms_id)
-		self.send_reset(bms_id)
-		time.sleep(1)
-		self.send_reset(bms_id)
-		time.sleep(1)
+		
 		self.release_bus()
 		bootload.main()
 		self.release_bus()
@@ -56,32 +57,20 @@ def main():
 
 
 	filename = sys.argv[1]
-	start_bms = int(sys.argv[2])
-	end_bms = int(sys.argv[3])
-	baud = sys.argv[4]
+	baud = '250000'
 	
-
-	if (start_bms > end_bms):
-		print("Bad input bms ids start id cannot be larger then stop id")
-		sys.exit()
-		
-	print("╔╗╔┌─┐─┐ ┬┌─┐┬ ┬┌─┐  ╦╦═╗╔═╗  ╔═╗┬  ┬┌─┐┬┌─┐┌┬┐┬┌─┐┌┐┌  ╔═╗┬  ┌─┐┌─┐┬ ┬┌─┐┬─┐")  
-	print("║║║├┤ ┌┴┬┘└─┐│ │└─┐  ║╠╦╝╠═╝  ║╣ └┐┌┘├┤ │├─┤ │ ││ ││││  ╠╣ │  ├─┤└─┐├─┤├┤ ├┬┘")  
-	print("╝╚╝└─┘┴ └─└─┘└─┘└─┘  ╩╩╚═╩    ╚═╝ └┘ └─┘┴┴ ┴ ┴ ┴└─┘┘└┘  ╚  ┴─┘┴ ┴└─┘┴ ┴└─┘┴└─")
+	print("╔╗╔┌─┐─┐ ┬┌─┐┬ ┬┌─┐  ╦╦═╗╔═╗   ╔═╗┬  ┌─┐┌─┐┬ ┬┌─┐┬─┐")  
+	print("║║║├┤ ┌┴┬┘└─┐│ │└─┐  ║╠╦╝╠═╝   ╠╣ │  ├─┤└─┐├─┤├┤ ├┬┘")  
+	print("╝╚╝└─┘┴ └─└─┘└─┘└─┘  ╩╩╚═╩     ╚  ┴─┘┴ ┴└─┘┴ ┴└─┘┴└─")
 	print("version 1.1\r\n")
-	print("******************************************************")
-	print("uploading ... " + filename + " @ " + baud + " bits/sec")
-	print("Uploading bms id from ",start_bms," to ",end_bms," ...")
-	print("******************************************************")
+
 	
 	args = 'cyflash_run.py '+ filename + ' --canbus=pcan --canbus_channel=PCAN_USBBUS1 --canbus_id=0x0ab --canbus_baudrate=' + baud
 	args = args.split()
 	sys.argv = args
 	
 	f = Flasher(baud)
-	for i in range(start_bms,end_bms + 1):
-		print("uploading " + str(i))
-		f.upload(i)
+	f.upload()
 
 
 # Cal main entry point
