@@ -57,13 +57,17 @@ def main():
 
 
 	filename = sys.argv[1]
-	baud = '250000'
+	baud = sys.argv[2]
 	
 	print("╔╗╔┌─┐─┐ ┬┌─┐┬ ┬┌─┐  ╦╦═╗╔═╗   ╔═╗┬  ┌─┐┌─┐┬ ┬┌─┐┬─┐")  
 	print("║║║├┤ ┌┴┬┘└─┐│ │└─┐  ║╠╦╝╠═╝   ╠╣ │  ├─┤└─┐├─┤├┤ ├┬┘")  
 	print("╝╚╝└─┘┴ └─└─┘└─┘└─┘  ╩╩╚═╩     ╚  ┴─┘┴ ┴└─┘┴ ┴└─┘┴└─")
-	print("version 1.1\r\n")
+	print("you shell now wait... \r\n")
+	
+	print("version 1.2\r\n")
 
+	print("baudrate: " + baud + " bit/sec \r\n")
+	
 	
 	args = 'cyflash_run.py '+ filename + ' --canbus=pcan --canbus_channel=PCAN_USBBUS1 --canbus_id=0x0ab --canbus_baudrate=' + baud
 	args = args.split()
