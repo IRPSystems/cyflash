@@ -12,7 +12,7 @@ class Flasher:
 		self.baud = int(baud)
 		
 	def send_reset(self):
-		msg = can.Message(arbitration_id=0x180000DD,data=[0, 0, 0, 0, 0, 0, 0, 0],extended_id=True)
+		msg = can.Message(arbitration_id=0x180000DD,data=[0x8D, 0xC4, 0x55, 0x1B, 0xF0, 0x83, 0x67, 0xEA],extended_id=True)
 		try:
 			self.bus.send(msg)
 			print("Send Reset.. !")
@@ -64,7 +64,7 @@ def main():
 	print("╝╚╝└─┘┴ └─└─┘└─┘└─┘  ╩╩╚═╩     ╚  ┴─┘┴ ┴└─┘┴ ┴└─┘┴└─")
 	print("you shell now wait... \r\n")
 	
-	print("version 1.2\r\n")
+	print("version 1.21\r\n")
 
 	print("baudrate: " + baud + " bit/sec \r\n")
 	
