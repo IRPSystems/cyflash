@@ -1,7 +1,6 @@
 from cyflash import bootload
 
 import serial
-import time
 import sys
 
 class Flasher:
@@ -23,9 +22,7 @@ class Flasher:
 		print("Finished bootloading")
 	
 	def upload(self):
-		for i in range(5):
-			self.send_bootload_enter()
-			time.sleep(1)
+		self.send_bootload_enter()
 		
 		self.close_connection()
 		bootload.main()
