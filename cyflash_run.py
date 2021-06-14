@@ -8,7 +8,11 @@ import sys
 ## Global Vars
 #####################################################################################
 _SN		= 0
+_STATS	= {}
 _error	= False
+
+# for Grepow batteries there are 11 messages, Life batteries should get 15 messages
+_AMOUNT_OF_STATS_MSGS = 11
 
 #####################################################################################
 ## CAN Flasher class
@@ -93,7 +97,7 @@ def fetch_sn():
 	bus = can.interface.Bus(bustype='pcan', channel='PCAN_USBBUS1', bitrate=500000)
 
 	try:
-		print("Waiting for serial number...")
+		print("Waiting for serial number, this may take up to 30 seconds...")
 
 		msgCount = 0
 		while True:
@@ -104,7 +108,7 @@ def fetch_sn():
 
 				if sn != 0:
 					_SN = sn
-					print("S/N Found: {} / {}".format(hex(sn), _SN))
+					print("S/N Found: {}".format(_SN))
 					break
 				
 				if msgCount >= 3:
@@ -122,7 +126,6 @@ def fetch_sn():
 
 	print("----------------------\r\n")
 
-
 #####################################################################################
 ## Sore S/N: send back the serial number
 #####################################################################################
@@ -136,11 +139,102 @@ def restore_sn():
 
 	bus = can.interface.Bus(bustype='pcan', channel='PCAN_USBBUS1', bitrate=500000)
 
-	# CAN message to enter ATP mode, in order to change S/N
-	msg_activate_atp = can.Message(arbitration_id=0x180F00DD, data=[0], is_extended_id=True)
-
 	# CAN message to set the new S/N
 	msg_set_sn = can.Message(arbitration_id=0x180F0011, data=_SN.to_bytes(4, byteorder='big'), is_extended_id=True)
+
+	try:
+		print("Restoring serial number...")
+		bus.send(msg_set_sn)
+		time.sleep(0.3)
+
+		bus.send(msg_set_sn)
+		time.sleep(0.3)
+
+	except can.CanError:
+		_error = True
+		print("CAN error")
+
+	# release can
+	bus.shutdown()
+
+	print("----------------------\r\n")
+
+#####################################################################################
+## Fetch Stats: get all statistics before overwriting them
+#####################################################################################
+
+def fetch_stats():
+	global _STATS, _AMOUNT_OF_STATS_MSGS
+
+	bus = can.interface.Bus(bustype='pcan', channel='PCAN_USBBUS1', bitrate=500000)
+	
+	# CAN message to request statistics
+	msg_request_stats = can.Message(arbitration_id=0x180000C0, data=[0], is_extended_id=True)
+
+	try:
+		print("Collecting statistics")
+		bus.send(msg_request_stats)
+
+		while True:
+			message = bus.recv()
+			# check if this is a statistics message
+			if message.arbitration_id & 0xFFF0FFF0 == 0x180000C0:
+				_STATS[(message.arbitration_id & 0x0000FFFF)] = message.data
+				
+				#print("Received {} stats messages so far".format(len(_STATS)))
+				
+				if len(_STATS) >= _AMOUNT_OF_STATS_MSGS:
+					print("All stats collected")
+					break
+
+	except can.CanError:
+		_error = True
+		print("CAN error")
+
+	# release can
+	bus.shutdown()
+	
+	print("----------------------\r\n")
+
+#####################################################################################
+## Restore Stats: put back saved statistics in EEPROM
+#####################################################################################
+
+def restore_stats():
+	global _STATS
+
+	bus = can.interface.Bus(bustype='pcan', channel='PCAN_USBBUS1', bitrate=500000)
+	
+	try:
+		print("Restoring statistics...")
+
+		# order data by message IDs
+		dict(sorted(_STATS.items()))
+
+		for msg_id, msg_data in _STATS.items():
+			print("Restoring msg ID: 0x{0:0{1}X}".format(msg_id, 4))	#hex(msg_id).upper()
+			msg_stats_restore = can.Message(arbitration_id=(msg_id | 0x180FFF00), data=msg_data, is_extended_id=True)
+			bus.send(msg_stats_restore)
+			time.sleep(0.3)
+
+	except can.CanError:
+		_error = True
+		print("CAN error")
+
+	# release can
+	bus.shutdown()
+	
+	print("----------------------\r\n")
+
+#####################################################################################
+## Enter ATP
+#####################################################################################
+
+def enter_atp():
+	bus = can.interface.Bus(bustype='pcan', channel='PCAN_USBBUS1', bitrate=500000)
+	
+	# CAN message to enter ATP mode, in order to change S/N
+	msg_activate_atp = can.Message(arbitration_id=0x180F00DD, data=[0], is_extended_id=True)
 
 	try:
 		print("Entering ATP mode...")
@@ -164,20 +258,42 @@ def restore_sn():
 
 	except can.CanError:
 		_error = True
-		print("CAN error")
-
-	print("")
-	print("Restoring serial number...")
-	bus.send(msg_set_sn)
-	time.sleep(0.3)
-
-	bus.send(msg_set_sn)
-	time.sleep(0.3)
 
 	# release can
 	bus.shutdown()
-
+	
 	print("----------------------\r\n")
+
+#####################################################################################
+## Validate Stats
+#####################################################################################
+
+def validate_stats():
+	global _STATS
+
+	print("Validating statistics...")
+
+	previous_stats = _STATS
+
+	for i in range(0, 3):
+		_STATS.clear()
+
+		time.sleep(3)
+		fetch_stats()
+
+		if _STATS == previous_stats:
+			break
+		else:
+			_STATS = previous_stats
+			restore_stats()
+
+	if _STATS != previous_stats:
+		print("Not all statistics were restored!!")
+	else:
+		print("All statistics restored correctly.")
+	
+	print("----------------------\r\n")
+
 
 #####################################################################################
 ## Main
@@ -189,17 +305,31 @@ if __name__ == '__main__':
 	print("|  \| | _____  ___   _ ___    | | | |__) | |__) | | |__  | | __ _ ___| |__   ___ _ __ ")
 	print("| . ` |/ _ \ \/ | | | / __|   | | |  _  /|  ___/  |  __| | |/ _` / __| '_ \ / _ | '__|")
 	print("| |\  |  __/>  <| |_| \__ \  _| |_| | \ \| |      | |    | | (_| \__ | | | |  __| |   ")
-	print("|_| \_|\___/_/\_\\__,_| ___/ |_____|_|  \_|_|      |_|    |_|\__,_|___|_| |_|\___|_|   ")
+	print("|_| \_|\___/_/\_\\__,_| ___/ |_____|_|  \_|_|      |_|    |_|\__,_|___|_| |_|\___|_|   ")	# shifted to be displayed correctly
 	print("")
 
+	# collect data from EEPROM
 	fetch_sn()
+	fetch_stats()
+
+	# send the new FW image
 	flash_upgrade()
-	restore_sn()
+	time.sleep(1)
+
+	# enter ATP mode - should be sent only once
+	enter_atp()
+
+	# restore collected data to the EEPROM, if all passed correctly
+	if _error == False:
+		print("Restoring data, please wait...")
+		time.sleep(10)
+
+		restore_sn()
+		restore_stats()
+
+		validate_stats()
 
 	if _error == False:
-		if _SN == 0:
-			print("Flashing proceedure finished, S/N couldn't be restored")
-		else:
-			print("Flashing proceedure finished, S/N restored correctly")
+		print("Flashing proceedure finished, {}".format( "S/N / stats couldn't be restored" if _SN == 0 else "S/N & stats restored correctly" ))
 	else:
 		print("Something went wrong..")
