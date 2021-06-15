@@ -3,6 +3,9 @@ from cyflash import bootload
 import can
 import time
 import sys
+import pathlib
+from datetime import datetime
+import json
 
 #####################################################################################
 ## Global Vars
@@ -58,13 +61,15 @@ class Flasher:
 		
 		self.release_bus()
 		bootload.main()
+		
+		print("----------------------")
 
 	#####################################################################################
 	## Fetch S/N: get serial number from the CAN messages
 	#####################################################################################
 
 	def fetch_sn(self):
-		global _SN
+		global _SN, _error
 
 		try:
 			print("Waiting for serial number, this may take up to 30 seconds...")
@@ -97,7 +102,7 @@ class Flasher:
 	#####################################################################################
 
 	def restore_sn(self):
-		global _SN
+		global _SN, _error
 
 		if _SN == 0:
 			print("No S/N detected - skiping S/N restoration", _SN)
@@ -125,7 +130,7 @@ class Flasher:
 	#####################################################################################
 
 	def fetch_stats(self):
-		global _STATS, _AMOUNT_OF_STATS_MSGS
+		global _STATS, _AMOUNT_OF_STATS_MSGS, _error
 
 		# CAN message to request statistics
 		msg_request_stats = can.Message(arbitration_id=0x180000C0, data=[0], is_extended_id=True)
@@ -155,7 +160,7 @@ class Flasher:
 	#####################################################################################
 
 	def restore_stats(self):
-		global _STATS
+		global _STATS, _error
 
 		try:
 			print("Restoring statistics...")
@@ -180,6 +185,8 @@ class Flasher:
 	#####################################################################################
 
 	def enter_atp(self):
+		global _error
+
 		# CAN message to enter ATP mode, in order to change S/N
 		msg_activate_atp = can.Message(arbitration_id=0x180F00DD, data=[0], is_extended_id=True)
 
@@ -247,7 +254,7 @@ class Flasher:
 #####################################################################################
 
 def flash_upgrade():
-	global filename, baud
+	global filename, baud, _error
 	
 	args = 'cyflash_run.py '+ filename + ' --canbus=pcan --canbus_channel=PCAN_USBBUS1 --canbus_id=0x0ab --canbus_baudrate=' + baud
 	args = args.split()
@@ -306,4 +313,19 @@ if __name__ == '__main__':
 	if _error == False:
 		print("Flashing proceedure finished, {}".format( "S/N / stats couldn't be restored" if _SN == 0 else "S/N & stats restored correctly" ))
 	else:
-		print("Something went wrong..")
+		# save log file
+		time_now = datetime.now().strftime("%d%m%y_%H%M%S")
+		log_name = "logs/{}_{}.json".format(_SN, time_now)
+		log_stats = {}
+
+		# convert byte array to int, so it can be saved as JSON
+		for k, v in _STATS.items():
+			log_stats[k] = int.from_bytes(v, byteorder='big', signed=False)
+
+		log_data = {"sn": _SN, "stats": log_stats}
+
+		pathlib.Path('logs').mkdir(parents=True, exist_ok=True) 
+		log_file = open(log_name, "w")
+		log_file.write(json.dumps(log_data))
+
+		print("Something went wrong.. log saved into " + log_name)
