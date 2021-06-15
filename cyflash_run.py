@@ -25,16 +25,15 @@ class Flasher:
 		self.baud = int(baud)
 		
 	def send_reset(self):
-		msg = can.Message(arbitration_id=0x180000DD,data=[0x8D, 0xC4, 0x55, 0x1B, 0xF0, 0x83, 0x67, 0xEA],extended_id=True)
+		msg = can.Message(arbitration_id=0x180000DD, data=[0x8D, 0xC4, 0x55, 0x1B, 0xF0, 0x83, 0x67, 0xEA], extended_id=True)
 		try:
 			self.bus.send(msg)
 			print("Send Reset.. !")
-			#print("Message sent on {}".format(self.bus.channel_info))
 		except can.CanError:
-			print("Send Silence.. error")
+			print("Send reset.. error")
 
 	def send_wake(self):
-		msg = can.Message(arbitration_id=0x180000EE,data=[0, 0, 0, 0, 0, 0, 0, 0],extended_id=True)
+		msg = can.Message(arbitration_id=0x180000EE, data=[0], extended_id=True)
 		try:
 			self.bus.send(msg)
 			print("Send wake..")
@@ -51,7 +50,7 @@ class Flasher:
 	def upload(self):
 		self.take_bus()
 		
-		for i in range(15):
+		for i in range(11):
 			self.send_wake()
 			time.sleep(1)
 
@@ -70,12 +69,7 @@ class Flasher:
 #####################################################################################
 
 def flash_upgrade():
-	filename = sys.argv[1]
-	baud	 = sys.argv[2]
-
-	print("You shall now wait... \r\n")
-	print("Version 1.22\r\n")
-	print("Baudrate: " + baud + " bit/sec \r\n")
+	global filename, baud
 	
 	args = 'cyflash_run.py '+ filename + ' --canbus=pcan --canbus_channel=PCAN_USBBUS1 --canbus_id=0x0ab --canbus_baudrate=' + baud
 	args = args.split()
@@ -85,7 +79,7 @@ def flash_upgrade():
 	f.upload()
 	time.sleep(0.5)
 
-	print("----------------------\r\n")
+	print("----------------------")
 
 #####################################################################################
 ## Fetch S/N: get serial number from the CAN messages
@@ -118,13 +112,13 @@ def fetch_sn():
 
 	except can.CanError:
 		_error = True
-		print("CAN error")
+		print("CAN error - couldn't fetch S/N")
 
 	# release can
 	bus.shutdown()
 	time.sleep(0.5)
 
-	print("----------------------\r\n")
+	print("----------------------")
 
 #####################################################################################
 ## Sore S/N: send back the serial number
@@ -152,12 +146,12 @@ def restore_sn():
 
 	except can.CanError:
 		_error = True
-		print("CAN error")
+		print("CAN error - couldn't restore S/N")
 
 	# release can
 	bus.shutdown()
 
-	print("----------------------\r\n")
+	print("----------------------")
 
 #####################################################################################
 ## Fetch Stats: get all statistics before overwriting them
@@ -189,12 +183,12 @@ def fetch_stats():
 
 	except can.CanError:
 		_error = True
-		print("CAN error")
+		print("CAN error - couldn't fetch statistics")
 
 	# release can
 	bus.shutdown()
 	
-	print("----------------------\r\n")
+	print("----------------------")
 
 #####################################################################################
 ## Restore Stats: put back saved statistics in EEPROM
@@ -212,19 +206,19 @@ def restore_stats():
 		dict(sorted(_STATS.items()))
 
 		for msg_id, msg_data in _STATS.items():
-			print("Restoring msg ID: 0x{0:0{1}X}".format(msg_id, 4))	#hex(msg_id).upper()
+			print("Restoring msg ID: 0x{0:0{1}X}".format(msg_id, 4))
 			msg_stats_restore = can.Message(arbitration_id=(msg_id | 0x180FFF00), data=msg_data, is_extended_id=True)
 			bus.send(msg_stats_restore)
 			time.sleep(0.3)
 
 	except can.CanError:
 		_error = True
-		print("CAN error")
+		print("CAN error - couldn't restore statistics")
 
 	# release can
 	bus.shutdown()
 	
-	print("----------------------\r\n")
+	print("----------------------")
 
 #####################################################################################
 ## Enter ATP
@@ -257,12 +251,13 @@ def enter_atp():
 					break
 
 	except can.CanError:
+		print("CAN error - couldn't enter ATP mode")
 		_error = True
 
 	# release can
 	bus.shutdown()
 	
-	print("----------------------\r\n")
+	print("----------------------")
 
 #####################################################################################
 ## Validate Stats
@@ -290,9 +285,9 @@ def validate_stats():
 	if _STATS != previous_stats:
 		print("Not all statistics were restored!!")
 	else:
-		print("All statistics restored correctly.")
+		print("All statistics restored correctly")
 	
-	print("----------------------\r\n")
+	print("----------------------")
 
 
 #####################################################################################
@@ -300,6 +295,9 @@ def validate_stats():
 #####################################################################################
 
 if __name__ == '__main__':
+	filename = sys.argv[1]
+	baud	 = sys.argv[2]
+
 	print(" _   _                       _____ _____  _____    ______ _           _               ")  
 	print("| \ | |                     |_   _|  __ \|  __ \  |  ____| |         | |              ")  
 	print("|  \| | _____  ___   _ ___    | | | |__) | |__) | | |__  | | __ _ ___| |__   ___ _ __ ")
@@ -307,6 +305,10 @@ if __name__ == '__main__':
 	print("| |\  |  __/>  <| |_| \__ \  _| |_| | \ \| |      | |    | | (_| \__ | | | |  __| |   ")
 	print("|_| \_|\___/_/\_\\__,_| ___/ |_____|_|  \_|_|      |_|    |_|\__,_|___|_| |_|\___|_|   ")	# shifted to be displayed correctly
 	print("")
+	print("Version 1.22\r\n")
+	print("You shall now wait... \r\n")
+	print("Baudrate: " + baud + " bit/sec")
+	print("----------------------\r\n")
 
 	# collect data from EEPROM
 	fetch_sn()
