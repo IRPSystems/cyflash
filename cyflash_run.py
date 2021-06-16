@@ -13,9 +13,10 @@ import json
 _SN		= 0
 _STATS	= {}
 _error	= False
+_got_sn = True
 
-# for Grepow batteries there are 11 messages, Life batteries should get 15 messages
-_AMOUNT_OF_STATS_MSGS = 11
+# for Grepow batteries there are 13 messages, Life batteries should get 17 messages
+_AMOUNT_OF_STATS_MSGS = 13
 
 #####################################################################################
 ## CAN Flasher class
@@ -88,7 +89,7 @@ class Flasher:
 					
 					if msgCount >= 3:
 						print("NOTICE: S/N received as 0 - can't restore")
-						_error = True
+						_got_sn = False
 						break
 
 		except can.CanError:
@@ -136,18 +137,23 @@ class Flasher:
 		msg_request_stats = can.Message(arbitration_id=0x180000C0, data=[0], is_extended_id=True)
 
 		try:
-			print("Collecting statistics")
+			print("Collecting statistics, this may take up to 10 seconds..")
 			self.bus.send(msg_request_stats)
 
 			while True:
 				message = self.bus.recv()
-				# check if this is a statistics message
-				if message.arbitration_id & 0xFFF0FFF0 == 0x180000C0:
+				# check if this is a statistics message (0x00C# or 0x0012 or 0x0013)
+				if message.arbitration_id & 0xFFF0FFF0 == 0x180000C0 \
+				  or message.arbitration_id & 0xFFF0FFFE == 0x18000012:
 					_STATS[(message.arbitration_id & 0x0000FFFF)] = message.data
 					
 					if len(_STATS) >= _AMOUNT_OF_STATS_MSGS:
-						print("All stats collected")
+						print("All statistics collected")
 						break
+
+			if len(_STATS) < _AMOUNT_OF_STATS_MSGS:
+				_error = True
+				print("Couldn't fetch all statistics")
 
 		except can.CanError:
 			_error = True
@@ -222,7 +228,7 @@ class Flasher:
 	#####################################################################################
 
 	def validate_stats(self):
-		global _STATS
+		global _STATS, _error
 
 		print("Validating statistics...")
 
@@ -242,6 +248,7 @@ class Flasher:
 				self.restore_stats()
 
 		if _STATS != previous_stats:
+			_error = True
 			print("Not all statistics were restored!!")
 		else:
 			print("All statistics restored correctly")
@@ -270,7 +277,7 @@ def flash_upgrade():
 	# send the new FW image
 	f.upload()
 	f.release_bus()
-	time.sleep(0.5)
+	time.sleep(1)
 
 	# enter ATP mode - should be sent only once
 	f.take_bus()
@@ -283,6 +290,7 @@ def flash_upgrade():
 		
 		f.restore_sn()
 		f.restore_stats()
+		time.sleep(0.5)
 
 		f.validate_stats()
 	
@@ -303,7 +311,7 @@ if __name__ == '__main__':
 	print("| |\  |  __/>  <| |_| \__ \  _| |_| | \ \| |      | |    | | (_| \__ | | | |  __| |   ")
 	print("|_| \_|\___/_/\_\\__,_| ___/ |_____|_|  \_|_|      |_|    |_|\__,_|___|_| |_|\___|_|   ")	# shifted to be displayed correctly
 	print("")
-	print("Version 1.22\r\n")
+	print("Version 1.23\r\n")
 	print("You shall now wait... \r\n")
 	print("Baudrate: " + baud + " bit/sec")
 	print("----------------------\r\n")
