@@ -1,8 +1,8 @@
 from cyflash import bootload
 
-import can
 import time
 import sys
+import can
 
 class Flasher:
 
@@ -44,9 +44,6 @@ class Flasher:
 
 
 		self.send_reset()
-		time.sleep(1)
-		self.send_reset()
-		time.sleep(1)
 		
 		self.release_bus()
 		bootload.main()
@@ -64,7 +61,7 @@ def main():
 	print("╝╚╝└─┘┴ └─└─┘└─┘└─┘  ╩╩╚═╩     ╚  ┴─┘┴ ┴└─┘┴ ┴└─┘┴└─")
 	print("you shell now wait... \r\n")
 	
-	print("version 1.21\r\n")
+	print("version 1.22\r\n")
 
 	print("baudrate: " + baud + " bit/sec \r\n")
 	
